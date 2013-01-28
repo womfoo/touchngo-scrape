@@ -12,7 +12,7 @@ u4 = "http://e-services.touchngo.com.my/e-Statement/printstatementdetails.cfm?mf
 
 -- Hardcoding for now
 userid   = "your-userid"
-password = "your-password"
+passwd   = "your-password"
 mfgno    = "your-mfgno"
 
 getCSVLink [(TagOpen "a" [("href",url)])] = url

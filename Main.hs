@@ -11,14 +11,9 @@ u3 = "http://e-services.touchngo.com.my/e-Statement/submit.cfm"
 u4 = "http://e-services.touchngo.com.my/e-Statement/printstatementdetails.cfm?mfgno=" ++ mfgno -- TODO: parse mfgno from u3 response
 
 -- Hardcoding for now
-userid = "womfoo2"
-passwd = "womfoo2"
-mfgno  = "3140825262"
-{-
 userid   = "your-userid"
 password = "your-password"
 mfgno    = "your-mfgno"
--}
 
 getCSVLink [(TagOpen "a" [("href",url)])] = url
 getCSVLink _                              = error "CSV link not found"
@@ -67,4 +62,4 @@ main = do
 
     return $ rspBody resp5
 
-  writeFile "output.csv" csvdata
+  writeFile "output.csv" $! csvdata

@@ -1,19 +1,24 @@
+import Control.Applicative
+import qualified Data.Configurator as Config
+import Data.Configurator.Types
 import Data.Maybe
+import qualified Data.Text as Text
 import Data.Time
 import Network.Browser
 import Network.CGI.Protocol (formEncode)
 import Network.HTTP
 import Text.HTML.TagSoup
 
+data Account = Account {
+  userid :: String,
+  passwd :: String,
+  mfgno :: String
+} deriving (Show)
+
 u1 = "http://e-services.touchngo.com.my/e-Statement/"
 u2 = "http://e-services.touchngo.com.my/e-Statement/index.cfm"
 u3 = "http://e-services.touchngo.com.my/e-Statement/submit.cfm"
-u4 = "http://e-services.touchngo.com.my/e-Statement/printstatementdetails.cfm?mfgno=" ++ mfgno -- TODO: parse mfgno from u3 response
-
--- Hardcoding for now
-userid   = "your-userid"
-passwd   = "your-password"
-mfgno    = "your-mfgno"
+u4 = (++) "http://e-services.touchngo.com.my/e-Statement/printstatementdetails.cfm?mfgno=" -- TODO: parse mfgno from u3 response
 
 getCSVLink [(TagOpen "a" [("href",url)])] = url
 getCSVLink _                              = error "CSV link not found"
@@ -22,15 +27,27 @@ toParams (TagOpen _ attrs) = (name,value)
   where name  = fromJust (lookup "name" attrs)
         value = fromMaybe "" $ lookup "value" attrs
 
-overrideParams (name,value) = (name,newvalue)
+overrideParams account (name,value) = (name,newvalue)
    where newvalue  = fromMaybe value $ lookup name overrides
-         overrides = [("userid",userid)
-                     ,("password",passwd)
+         overrides = [("userid",userid account)
+                     ,("password",passwd account)
                      ,("Submit","Login")]
 
 postReqWithParms url params = request $ postRequestWithBody url "application/x-www-form-urlencoded" (formEncode params)
 
+getAccount :: Config -> IO Account
+getAccount config = do
+  u <- Config.lookup config $ Text.pack "userid"
+  p <- Config.lookup config $ Text.pack "passwd"
+  m <- Config.lookup config $ Text.pack "mfgno"
+  case Account <$> u <*> p <*> m  of
+    Just x -> return x
+    _      -> error "error loading config"
+
 main = do
+
+  conf <- Config.load [Required "touchngo.cfg"]
+  account <- getAccount conf
 
   (y,m,d) <- fmap (toGregorian . utctDay) getCurrentTime -- TODO: maybe pull 90 days only?
 
@@ -42,7 +59,7 @@ main = do
 
     let inputTags = filter (~== "<input>") $ parseTags (rspBody resp)
         rawParams = map toParams inputTags
-        paramsWithLogin = map overrideParams rawParams
+        paramsWithLogin = map (overrideParams account) rawParams
     setAllowRedirects True -- we can now enable this as the session is now kept
 
     (uri2,resp2) <- postReqWithParms u2 paramsWithLogin
@@ -54,7 +71,7 @@ main = do
                                         ,("toMonth",show m)
                                         ,("toYear",show y)]
 
-    (uri4,resp4) <- postReqWithParms u4 [("exportCSV","Export to CSV")]
+    (uri4,resp4) <- postReqWithParms (u4 (mfgno account)) [("exportCSV","Export to CSV")]
 
     let csvLink = getCSVLink $ filter (~== "<a>") $ parseTags (rspBody resp4)
 

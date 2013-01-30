@@ -8,6 +8,7 @@ import Network.Browser
 import Network.CGI.Protocol (formEncode,formDecode)
 import Network.HTTP
 import Network.URI
+import System.Locale
 import Text.HTML.TagSoup
 
 data Account = Account {
@@ -51,7 +52,7 @@ main = do
 
   (y,m,d) <- fmap (toGregorian . utctDay) getCurrentTime -- TODO: maybe pull 90 days only?
 
-  csvdata <- browse $ do
+  (mfgno,csvdata) <- browse $ do
 
     (uri,resp) <- request $ getRequest u1
 
@@ -79,6 +80,12 @@ main = do
 
     (uri5,resp5) <- request $ getRequest csvLink
 
-    return $ rspBody resp5
+    return (mfgno,rspBody resp5)
 
-  writeFile "output.csv" $! csvdata
+  timestamp <- fmap (formatTime defaultTimeLocale "%Y%m%d.%H%M%S") getCurrentTime
+
+  let filename = mfgno ++ "-" ++ timestamp ++ ".csv"
+
+  putStr $ "Writing " ++ filename
+  writeFile filename $! csvdata
+  putStr " (Done)\n"

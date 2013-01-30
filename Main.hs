@@ -20,8 +20,8 @@ u2 = "http://e-services.touchngo.com.my/e-Statement/index.cfm"
 u3 = "http://e-services.touchngo.com.my/e-Statement/submit.cfm"
 u4 = (++) "http://e-services.touchngo.com.my/e-Statement/printstatementdetails.cfm?mfgno="
 
-getCSVLink [(TagOpen "a" [("href",url)])] = url
-getCSVLink _                              = error "CSV link not found"
+getCSVLink [TagOpen "a" [("href",url)]] = url
+getCSVLink _                            = error "CSV link not found"
 
 toParams (TagOpen _ attrs) = (name,value)
   where name  = fromJust (lookup "name" attrs)
@@ -44,6 +44,7 @@ getAccount config = do
     _      -> error "error loading config"
 
 main = do
+  -- TODO: check response codes and remove errors
 
   conf <- Config.load [Required "touchngo.cfg"]
   account <- getAccount conf
@@ -51,15 +52,12 @@ main = do
   (y,m,d) <- fmap (toGregorian . utctDay) getCurrentTime -- TODO: maybe pull 90 days only?
 
   csvdata <- browse $ do
-    setMaxErrorRetries $ Just 10
-    setAllowRedirects False -- need this to handle cookies
 
     (uri,resp) <- request $ getRequest u1
 
     let inputTags = filter (~== "<input>") $ parseTags (rspBody resp)
         rawParams = map toParams inputTags
         paramsWithLogin = map (overrideParams account) rawParams
-    setAllowRedirects True -- we can now enable this as the session is now kept
 
     (uri2,resp2) <- postReqWithParms u2 paramsWithLogin
 
@@ -71,7 +69,7 @@ main = do
                                         ,("toYear",show y)]
 
     let uri3Params = (formDecode . query) uri3
-        mfgno = case (lookup "mfgno" uri3Params) of
+        mfgno = case lookup "mfgno" uri3Params of
                      Just n  -> n
                      _       -> error "mfgno not found"
 

@@ -69,7 +69,7 @@ main = do
                                         ,("toMonth",show m)
                                         ,("toYear",show y)]
 
-    let uri3Params = (formDecode . query) uri3
+    let uri3Params = (formDecode . tail . uriQuery) uri3
         mfgno = case lookup "mfgno" uri3Params of
                      Just n  -> n
                      _       -> error "mfgno not found"

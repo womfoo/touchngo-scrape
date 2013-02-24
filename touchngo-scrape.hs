@@ -53,6 +53,7 @@ main = do
   (y,m,d) <- fmap (toGregorian . utctDay) getCurrentTime -- TODO: maybe pull 90 days only?
 
   (mfgno,csvdata) <- browse $ do
+    setOutHandler (const (return ())) -- suppress chatter
 
     (uri,resp) <- request $ getRequest u1
 

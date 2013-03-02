@@ -18,4 +18,4 @@ cabal-version:       >=1.8
 executable touchngo-scrape
   main-is:             touchngo-scrape.hs
   -- other-modules:       
-  build-depends:       base ==4.5.*, configurator ==0.2.*, text ==0.11.*, time ==1.4.*, HTTP ==4000.2.*, cgi ==3001.1.*, network ==2.4.*, old-locale ==1.0.*, tagsoup ==0.12.*
+  build-depends:       base ==4.5.*, time ==1.4.*, HTTP ==4000.2.*, cgi ==3001.1.*, network ==2.4.*, old-locale ==1.0.*, tagsoup ==0.12.*
